@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "postinstall": "node scripts/fix-swc.cjs"
+    "start": "next start"
   },
   "dependencies": {
     "next": "14.2.5",
@@ -19,5 +18,16 @@
     "typescript": "5.6.3",
     "@types/react": "18.2.66",
     "@types/node": "20.11.30"
+  },
+  "optionalDependencies": {
+    "@next/swc-linux-x64-gnu": "14.2.5",
+    "@next/swc-linux-x64-musl": "14.2.5",
+    "@next/swc-linux-arm64-gnu": "14.2.5",
+    "@next/swc-linux-arm64-musl": "14.2.5",
+    "@next/swc-darwin-x64": "14.2.5",
+    "@next/swc-darwin-arm64": "14.2.5",
+    "@next/swc-win32-x64-msvc": "14.2.5",
+    "@next/swc-win32-ia32-msvc": "14.2.5",
+    "@next/swc-win32-arm64-msvc": "14.2.5"
   }
 }
