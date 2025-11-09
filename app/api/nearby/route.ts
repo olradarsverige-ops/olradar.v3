@@ -1,44 +1,44 @@
-
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '../../../lib/supabase';
 
-export async function GET(req: Request){
+export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const city = searchParams.get('city') || undefined;
-  const sort = searchParams.get('sort') || 'cheapest';
+  const sort = searchParams.get('sort') || 'standard';
 
-  let vq = supabase.from('venues').select('id,name,city,address').order('name');
-  if(city) vq = vq.eq('city', city);
-  const { data: venues, error: ve } = await vq;
-  if(ve) return NextResponse.json({ error: ve.message }, { status: 500 });
-  if(!venues) return NextResponse.json([]);
+  let q = supabase.from('vw_nearby').select('*');
+  if (city) q = q.eq('city', city);
 
-  const results:any[] = [];
-  for(const v of venues){
-    const { data: prices } = await supabase
-      .from('prices')
-      .select('price_sek, rating, verified, photo_url, created_at, beers(name,style)')
-      .eq('venue_id', v.id)
-      .order('created_at', { ascending: false })
-      .limit(3);
-    const deals = (prices||[]).map(p => ({
-      beer: (p as any).beers?.name,
-      style: (p as any).beers?.style,
-      price: p.price_sek,
-      rating: p.rating ?? 0,
-      verified: p.verified,
-      updatedAt: p.created_at,
-      photo_url: (p as any).photo_url ?? null
-    }));
-    results.push({ ...v, deals });
-  }
+  const { data, error } = await q;
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  if(sort === 'cheapest'){
-    results.sort((a,b)=>{
-      const aa = Math.min(...(a.deals?.length? a.deals.map((d:any)=>d.price) : [Infinity]));
-      const bb = Math.min(...(b.deals?.length? b.deals.map((d:any)=>d.price) : [Infinity]));
-      return aa - bb;
+  const shaped = (data || []).map((row: any) => {
+    const deals = Array.isArray(row.deals) ? row.deals.slice(0,3).map((d:any)=> ({
+      beer: d.beer,
+      style: d.style,
+      price: Number(d.price),
+      rating: Number(d.rating ?? 0),
+      updatedAt: d.updatedAt,
+      verified: d.verified ?? false,
+      photo_url: d.photo_url ?? null
+    })) : [];
+    return {
+      id: row.id,
+      name: row.name,
+      city: row.city,
+      address: row.address ?? null,
+      open_now: row.openNow ?? true,
+      deals
+    };
+  });
+
+  if (sort === 'cheapest') {
+    shaped.sort((a:any,b:any)=>{
+      const ap = a.deals?.length ? Math.min(...a.deals.map((d:any)=>d.price)) : Number.POSITIVE_INFINITY;
+      const bp = b.deals?.length ? Math.min(...b.deals.map((d:any)=>d.price)) : Number.POSITIVE_INFINITY;
+      return ap - bp;
     });
   }
-  return NextResponse.json(results);
+
+  return NextResponse.json(shaped);
 }
